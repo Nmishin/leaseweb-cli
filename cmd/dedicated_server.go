@@ -3,8 +3,8 @@ package cmd
 import (
 	"fmt"
 
-	LSW "github.com/LeaseWeb/leaseweb-go-sdk"
 	"github.com/cheynewallace/tabby"
+	dedicatedserver "github.com/leaseweb/leaseweb-go-sdk/dedicatedserver/v2"
 	"github.com/spf13/cobra"
 )
 
@@ -27,14 +27,18 @@ var dedicatedServerlistCmd = &cobra.Command{
 	Short: "Retrieve the list of Dedicated Servers",
 	Long:  "Retrieve the list of Dedicated Servers",
 	Run: func(cmd *cobra.Command, args []string) {
-		result, err := LSW.DedicatedServerApi{}.List()
+		client := dedicatedserver.NewAPIClient(dedicatedserver.NewConfiguration())
+		request := client.DedicatedserverAPI
+		server, _, err := request.GetServerList(ctx).Execute()
 		if err == nil {
 			t := tabby.New()
 			t.AddHeader("#", "Id", "Asset id", "Rack", "Site", "Suite", "Unit", "Rack type")
-			for i, server := range result.Servers {
+			for i, server := range server.Servers {
 				t.AddLine(i+1, server.Id, server.AssetId, server.Location.Rack, server.Location.Site, server.Location.Suite, server.Location.Unit, server.Rack.Type)
 			}
 			t.Print()
+		} else {
+			fmt.Println(err)
 		}
 	},
 }
@@ -44,9 +48,12 @@ var dedicatedServerGetCmd = &cobra.Command{
 	Short: "Retrieve details of Dedicated Server",
 	Long:  "Retrieve details of Dedicated Server",
 	Run: func(cmd *cobra.Command, args []string) {
-		server, err := LSW.DedicatedServerApi{}.Get(args[0])
+		client := dedicatedserver.NewAPIClient(dedicatedserver.NewConfiguration())
+		request := client.DedicatedserverAPI
+		server, _, err := request.GetServer(ctx, args[0]).Execute()
 		if err != nil {
 			fmt.Println(err)
+			return
 		}
 
 		t := tabby.New()
@@ -66,11 +73,12 @@ var dedicatedServerPowerOnCmd = &cobra.Command{
 	Short: "Power-on a Dedicated Server",
 	Long:  "Power-on a Dedicated Server",
 	Run: func(cmd *cobra.Command, args []string) {
-		err := LSW.DedicatedServerApi{}.PowerOnServer(args[0])
+		client := dedicatedserver.NewAPIClient(dedicatedserver.NewConfiguration())
+		request := client.DedicatedserverAPI
+		_, err := request.PowerOn(ctx, args[0]).Execute()
 		if err != nil {
 			fmt.Println(err)
-		} else {
-			fmt.Println("Server powered on!")
+			return
 		}
 	},
 }
@@ -80,11 +88,12 @@ var dedicatedServerPowerOffCmd = &cobra.Command{
 	Short: "Power-off a Dedicated Server",
 	Long:  "Power-off a Dedicated Server",
 	Run: func(cmd *cobra.Command, args []string) {
-		err := LSW.DedicatedServerApi{}.PowerOffServer(args[0])
+		client := dedicatedserver.NewAPIClient(dedicatedserver.NewConfiguration())
+		request := client.DedicatedserverAPI
+		_, err := request.PowerOff(ctx, args[0]).Execute()
 		if err != nil {
 			fmt.Println(err)
-		} else {
-			fmt.Println("Server powered off!")
+			return
 		}
 	},
 }

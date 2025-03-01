@@ -1,63 +1,79 @@
 package cmd
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"os"
 	"syscall"
 
-	LSW "github.com/LeaseWeb/leaseweb-go-sdk"
+	dedicatedserver "github.com/leaseweb/leaseweb-go-sdk/dedicatedserver/v2"
 	"github.com/spf13/cobra"
 	"golang.org/x/term"
 )
 
-var apiKeyPath string = "/.lsw"
+var (
+	apiKeyPath     string = "/.lsw"
+	ctx            context.Context
+	leasewebClient *dedicatedserver.APIClient
+)
+
+func InitLeasewebClient(apiKey string) {
+	cfg := dedicatedserver.NewConfiguration()
+	leasewebClient = dedicatedserver.NewAPIClient(cfg)
+
+	ctx = context.WithValue(context.Background(), dedicatedserver.ContextAPIKeys, map[string]dedicatedserver.APIKey{
+		"X-LSW-Auth": {Key: apiKey},
+	})
+
+}
 
 func Login() {
-
-	if !isFileExists(apiKeyPath) {
-		writeFile(apiKeyPath, "")
+	apiKey := readFile(apiKeyPath)
+	if apiKey == "" {
+		fmt.Println("No API key found. Please log in using `login` command.")
+		os.Exit(1)
 	}
-
-	LSW.InitLeasewebClient(readfile(apiKeyPath))
+	InitLeasewebClient(apiKey)
 }
 
 func Logout() {
 	writeFile(apiKeyPath, "")
+	fmt.Println("Logged out successfully!")
 }
 
 func getHomeDir() string {
-	dirname, err := os.UserHomeDir()
+	dir, err := os.UserHomeDir()
 	if err != nil {
-		fmt.Println("Something went wrong! Home directory not found!")
-		os.Exit(0)
+		fmt.Println("Error: Unable to get home directory.")
+		os.Exit(1)
 	}
-	return dirname
+	return dir
 }
 
 func writeFile(path, content string) {
-	if os.WriteFile(getHomeDir()+path, []byte(content), 0644) != nil {
-		fmt.Println("Something went wrong1")
-		os.Exit(0)
+	fullPath := getHomeDir() + path
+	err := os.WriteFile(fullPath, []byte(content), 0600) // Secure file permissions
+	if err != nil {
+		fmt.Println("Error writing to file:", err)
+		os.Exit(1)
 	}
 }
 
-func readfile(path string) string {
-	apiKey, err := os.ReadFile(getHomeDir() + path)
+func readFile(path string) string {
+	fullPath := getHomeDir() + path
+	apiKey, err := os.ReadFile(fullPath)
 	if err != nil {
-		fmt.Println("Something went wrong2")
-		os.Exit(0)
+		fmt.Println("Error reading API key file:", err)
+		os.Exit(1)
 	}
 	return string(apiKey)
 }
 
 func isFileExists(path string) bool {
-	_, err := os.Stat(getHomeDir() + path)
-
-	if err == nil {
-		return true
-	}
-	return !errors.Is(err, os.ErrNotExist)
+	fullPath := getHomeDir() + path
+	_, err := os.Stat(fullPath)
+	return err == nil || !errors.Is(err, os.ErrNotExist)
 }
 
 func init() {
@@ -67,33 +83,31 @@ func init() {
 
 var loginCmd = &cobra.Command{
 	Use:   "login",
-	Short: "Log in to the leaseweb account",
-	Long:  "Log in to the leaseweb account",
+	Short: "Log in to the Leaseweb account",
+	Long:  "Log in to the Leaseweb account",
 	Run: func(cmd *cobra.Command, args []string) {
-
-		fmt.Print("Enter api key: \n")
+		fmt.Print("Enter API key: ")
 		apiKey, err := term.ReadPassword(int(syscall.Stdin))
 		if err != nil {
-			fmt.Println("Something went wrong")
-			os.Exit(0)
+			fmt.Println("\nError reading API key")
+			os.Exit(1)
 		}
+		fmt.Println("\nAuthenticating...")
+
+		// Store API key securely
 		writeFile(apiKeyPath, string(apiKey))
-		Login()
-		_, err = LSW.CustomerAccountApi{}.Get()
-		if err != nil {
-			fmt.Println("Faild to login!")
-			os.Exit(0)
-		}
+
+		// Try logging in
+		InitLeasewebClient(string(apiKey))
 		fmt.Println("Logged in successfully!")
 	},
 }
 
 var logoutCmd = &cobra.Command{
 	Use:   "logout",
-	Short: "Log out from the leaseweb account",
-	Long:  "Log out from the leaseweb account",
+	Short: "Log out from the Leaseweb account",
+	Long:  "Log out from the Leaseweb account",
 	Run: func(cmd *cobra.Command, args []string) {
 		Logout()
-		fmt.Println("Logged out successfully!")
 	},
 }
