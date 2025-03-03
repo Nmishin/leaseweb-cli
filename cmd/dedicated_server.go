@@ -4,8 +4,8 @@ import (
 	"fmt"
 
 	"github.com/cheynewallace/tabby"
-	dedicatedserver "github.com/leaseweb/leaseweb-go-sdk/dedicatedserver/v2"
 	"github.com/spf13/cobra"
+	"github.com/Nmishin/leaseweb-cli"
 )
 
 func init() {
@@ -27,7 +27,6 @@ var dedicatedServerlistCmd = &cobra.Command{
 	Short: "Retrieve the list of Dedicated Servers",
 	Long:  "Retrieve the list of Dedicated Servers",
 	Run: func(cmd *cobra.Command, args []string) {
-		client := dedicatedserver.NewAPIClient(dedicatedserver.NewConfiguration())
 		request := client.DedicatedserverAPI
 		server, _, err := request.GetServerList(ctx).Execute()
 		if err == nil {
@@ -48,7 +47,6 @@ var dedicatedServerGetCmd = &cobra.Command{
 	Short: "Retrieve details of Dedicated Server",
 	Long:  "Retrieve details of Dedicated Server",
 	Run: func(cmd *cobra.Command, args []string) {
-		client := dedicatedserver.NewAPIClient(dedicatedserver.NewConfiguration())
 		request := client.DedicatedserverAPI
 		server, _, err := request.GetServer(ctx, args[0]).Execute()
 		if err != nil {
@@ -73,7 +71,6 @@ var dedicatedServerPowerOnCmd = &cobra.Command{
 	Short: "Power-on a Dedicated Server",
 	Long:  "Power-on a Dedicated Server",
 	Run: func(cmd *cobra.Command, args []string) {
-		client := dedicatedserver.NewAPIClient(dedicatedserver.NewConfiguration())
 		request := client.DedicatedserverAPI
 		_, err := request.PowerOn(ctx, args[0]).Execute()
 		if err != nil {
@@ -88,7 +85,6 @@ var dedicatedServerPowerOffCmd = &cobra.Command{
 	Short: "Power-off a Dedicated Server",
 	Long:  "Power-off a Dedicated Server",
 	Run: func(cmd *cobra.Command, args []string) {
-		client := dedicatedserver.NewAPIClient(dedicatedserver.NewConfiguration())
 		request := client.DedicatedserverAPI
 		_, err := request.PowerOff(ctx, args[0]).Execute()
 		if err != nil {

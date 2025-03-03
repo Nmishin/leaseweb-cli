@@ -15,17 +15,24 @@ import (
 var (
 	apiKeyPath     string = "/.lsw"
 	ctx            context.Context
+        args           []string
 	leasewebClient *dedicatedserver.APIClient
 )
 
-func InitLeasewebClient(apiKey string) {
+type Client struct {
+	DedicatedserverAPI dedicatedserver.DedicatedserverAPI
+}
+
+func InitLeasewebClient(apiKey string) Client {
 	cfg := dedicatedserver.NewConfiguration()
-	leasewebClient = dedicatedserver.NewAPIClient(cfg)
 
-	ctx = context.WithValue(context.Background(), dedicatedserver.ContextAPIKeys, map[string]dedicatedserver.APIKey{
-		"X-LSW-Auth": {Key: apiKey},
-	})
+        cfg.AddDefaultHeader("X-LSW-Auth", apiKey)
 
+        dedicatedserverAPI := dedicatedserver.NewAPIClient(cfg)
+
+        return Client{
+		DedicatedserverAPI: dedicatedserverAPI.DedicatedserverAPI,
+	}
 }
 
 func Login() {
