@@ -1,120 +1,74 @@
 package cmd
 
 import (
-	"context"
-	"errors"
+	"bytes"
+	"encoding/json"
 	"fmt"
+	"io"
+	"net/http"
 	"os"
-	"syscall"
 
-	dedicatedserver "github.com/leaseweb/leaseweb-go-sdk/dedicatedserver/v2"
-	"github.com/spf13/cobra"
-	"golang.org/x/term"
+	dedicatedserver "github.com/leaseweb/leaseweb-go-sdk/dedicatedserver"
 )
 
 var (
 	apiKeyPath     string = "/.lsw"
-	ctx            context.Context
-        args           []string
-	leasewebClient *dedicatedserver.APIClient
+	leasewebClient Client
 )
 
 type Client struct {
 	DedicatedserverAPI dedicatedserver.DedicatedserverAPI
 }
 
-func InitLeasewebClient(apiKey string) Client {
+func InitLeasewebClient(apiKey string) {
 	cfg := dedicatedserver.NewConfiguration()
 
-        cfg.AddDefaultHeader("X-LSW-Auth", apiKey)
+	cfg.AddDefaultHeader("X-LSW-Auth", apiKey)
 
-        dedicatedserverAPI := dedicatedserver.NewAPIClient(cfg)
-
-        return Client{
-		DedicatedserverAPI: dedicatedserverAPI.DedicatedserverAPI,
+	leasewebClient = Client{
+		DedicatedserverAPI: dedicatedserver.NewAPIClient(cfg).DedicatedserverAPI,
 	}
 }
 
 func Login() {
-	apiKey := readFile(apiKeyPath)
+	apiKey := os.Getenv("LEASEWEB_API_KEY")
 	if apiKey == "" {
-		fmt.Println("No API key found. Please log in using `login` command.")
+		fmt.Println("Error: LEASEWEB_API_KEY environment variable is not set.")
 		os.Exit(1)
 	}
 	InitLeasewebClient(apiKey)
 }
 
-func Logout() {
-	writeFile(apiKeyPath, "")
-	fmt.Println("Logged out successfully!")
-}
-
-func getHomeDir() string {
-	dir, err := os.UserHomeDir()
+func printResponse(resp interface{}) {
+	jsonData, err := json.MarshalIndent(resp, "", "  ") // ✅ Pretty print JSON
 	if err != nil {
-		fmt.Println("Error: Unable to get home directory.")
-		os.Exit(1)
+		fmt.Fprintf(os.Stdout, "Error marshalling response: %v\n", err)
+		return
 	}
-	return dir
+	fmt.Fprintf(os.Stdout, "Response from `DedicatedserverAPI.GetServer`:\n%s\n", jsonData)
 }
 
-func writeFile(path, content string) {
-	fullPath := getHomeDir() + path
-	err := os.WriteFile(fullPath, []byte(content), 0600) // Secure file permissions
+func prettyPrintResponse(r *http.Response) {
+	if r == nil {
+		fmt.Println("No response received")
+		return
+	}
+
+	// Read response body
+	body, err := io.ReadAll(r.Body)
 	if err != nil {
-		fmt.Println("Error writing to file:", err)
-		os.Exit(1)
+		fmt.Println("Error reading response body:", err)
+		return
 	}
-}
+	defer r.Body.Close() // Ensure we close the response body
 
-func readFile(path string) string {
-	fullPath := getHomeDir() + path
-	apiKey, err := os.ReadFile(fullPath)
+	// Pretty-print JSON
+	var prettyJSON bytes.Buffer
+	err = json.Indent(&prettyJSON, body, "", "    ") // 4-space indent
 	if err != nil {
-		fmt.Println("Error reading API key file:", err)
-		os.Exit(1)
+		fmt.Println("Error formatting JSON:", err)
+		return
 	}
-	return string(apiKey)
-}
 
-func isFileExists(path string) bool {
-	fullPath := getHomeDir() + path
-	_, err := os.Stat(fullPath)
-	return err == nil || !errors.Is(err, os.ErrNotExist)
-}
-
-func init() {
-	rootCmd.AddCommand(loginCmd)
-	rootCmd.AddCommand(logoutCmd)
-}
-
-var loginCmd = &cobra.Command{
-	Use:   "login",
-	Short: "Log in to the Leaseweb account",
-	Long:  "Log in to the Leaseweb account",
-	Run: func(cmd *cobra.Command, args []string) {
-		fmt.Print("Enter API key: ")
-		apiKey, err := term.ReadPassword(int(syscall.Stdin))
-		if err != nil {
-			fmt.Println("\nError reading API key")
-			os.Exit(1)
-		}
-		fmt.Println("\nAuthenticating...")
-
-		// Store API key securely
-		writeFile(apiKeyPath, string(apiKey))
-
-		// Try logging in
-		InitLeasewebClient(string(apiKey))
-		fmt.Println("Logged in successfully!")
-	},
-}
-
-var logoutCmd = &cobra.Command{
-	Use:   "logout",
-	Short: "Log out from the Leaseweb account",
-	Long:  "Log out from the Leaseweb account",
-	Run: func(cmd *cobra.Command, args []string) {
-		Logout()
-	},
+	fmt.Println(prettyJSON.String()) // Print formatted JSON
 }
