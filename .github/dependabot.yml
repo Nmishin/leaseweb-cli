@@ -1,0 +1,18 @@
+---
+version: 2
+updates:
+  - package-ecosystem: "github-actions"
+    directory: /
+    schedule:
+      interval: daily
+      time: "10:00"
+    commit-message:
+      prefix: "gh-actions:"
+
+  - package-ecosystem: gomod
+    directory: /
+    schedule:
+      interval: daily
+      time: "10:00"
+    commit-message:
+      prefix: "go:"
