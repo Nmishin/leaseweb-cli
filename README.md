@@ -1,10 +1,13 @@
 # Leaseweb CLI
 
-This package provides a cli for Leaseweb's REST API.
+This tool interacts with Leaseweb's API, allowing users to retrieve details about dedicated servers. It includes commands like `get` to fetch server details and `get-hardware` to retrieve hardware information.
 
-### Installation
+### Install
+Download the binary from the [Releases page](https://github.com/Nmishin/leaseweb-cli/releases).
+
+### Build
 ```bash
-git clone git@github.com:LeaseWeb/leaseweb-cli.git
+git clone git@github.com:Nmishin/leaseweb-cli.git
 cd leaseweb-cli
 go build -o leaseweb
 ```
@@ -13,11 +16,9 @@ go build -o leaseweb
 You can generate your API key at the [Customer Portal](https://secure.leaseweb.com/)
 
 ### Authentication
+For authentication need to export API Key from previous step
 ```bash
-leaseweb login
-# > Enter api key
+export LEASEWEB_API_KEY=<>
 ```
 
 ---
-
-![Screenshot 2022-10-07 at 11 40 39](https://user-images.githubusercontent.com/20487980/194524342-82f63f0e-8877-47f1-a67a-ef88b59b561e.png)
