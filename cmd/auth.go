@@ -12,7 +12,6 @@ import (
 )
 
 var (
-	apiKeyPath     string = "/.lsw"
 	leasewebClient Client
 )
 
@@ -40,7 +39,7 @@ func Login() {
 }
 
 func printResponse(resp interface{}) {
-	jsonData, err := json.MarshalIndent(resp, "", "  ") // ✅ Pretty print JSON
+	jsonData, err := json.MarshalIndent(resp, "", "  ")
 	if err != nil {
 		fmt.Fprintf(os.Stdout, "Error marshalling response: %v\n", err)
 		return
@@ -54,21 +53,19 @@ func prettyPrintResponse(r *http.Response) {
 		return
 	}
 
-	// Read response body
 	body, err := io.ReadAll(r.Body)
 	if err != nil {
 		fmt.Println("Error reading response body:", err)
 		return
 	}
-	defer r.Body.Close() // Ensure we close the response body
+	defer r.Body.Close()
 
-	// Pretty-print JSON
 	var prettyJSON bytes.Buffer
-	err = json.Indent(&prettyJSON, body, "", "    ") // 4-space indent
+	err = json.Indent(&prettyJSON, body, "", "    ")
 	if err != nil {
 		fmt.Println("Error formatting JSON:", err)
 		return
 	}
 
-	fmt.Println(prettyJSON.String()) // Print formatted JSON
+	fmt.Println(prettyJSON.String())
 }
