@@ -16,7 +16,7 @@ go build -o leaseweb
 You can generate your API key at the [Customer Portal](https://secure.leaseweb.com/)
 
 ### Authentication
-For authentication need to export API Key from previous step
+For authentication need to export API Key from previous step, or set it as `--api-key` flag.
 ```bash
 export LEASEWEB_API_KEY=<>
 ```
