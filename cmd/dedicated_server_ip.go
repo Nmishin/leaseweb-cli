@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"os"
 
-	dedicatedserver "github.com/leaseweb/leaseweb-go-sdk/dedicatedserver"
+	dedicatedserver "github.com/leaseweb/leaseweb-go-sdk/dedicatedserver/v2"
 	"github.com/spf13/cobra"
 )
 
@@ -31,13 +31,13 @@ var (
 
 var dedicatedServerIpListCmd = &cobra.Command{
 	Use:   "get-ips <serverId>",
-	Short: "List Dedicated Server IPs",
+	Short: "List the server IPs",
 	Args:  cobra.ExactArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
 		serverID := args[0]
 		ctx := context.Background()
 
-		req := leasewebClient.DedicatedserverAPI.GetServerIpList(ctx, serverID)
+		req := leasewebClient.DedicatedserverAPI.GetIpList(ctx, serverID)
 		if networkType != "" {
 			req = req.NetworkType(dedicatedserver.NetworkType(networkType))
 		}
@@ -57,33 +57,33 @@ var dedicatedServerIpListCmd = &cobra.Command{
 			req = req.Offset(offset)
 		}
 
-		_, r, err := req.Execute()
+		server, _, err := req.Execute()
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "Error: %v\n", err)
 			os.Exit(1)
 		}
 
-		prettyPrintResponse(r)
+		printResponse(server)
 	},
 }
 
 var dedicatedServerIpGetCmd = &cobra.Command{
 	Use:   "get-ip <serverId> <ip>",
-	Short: "Describe Dedicated Server IP",
-	Long:  "Describe Dedicated Server IP by server ID and IP address",
+	Short: "Describe the server IP",
+	Long:  "Describe the server IP by server ID and IP address",
 	Args:  cobra.ExactArgs(2),
 	Run: func(cmd *cobra.Command, args []string) {
 		serverID := args[0]
 		ip := args[1]
 		ctx := context.Background()
 
-		req := leasewebClient.DedicatedserverAPI.GetServerIp(ctx, serverID, ip)
-		_, r, err := req.Execute()
+		req := leasewebClient.DedicatedserverAPI.GetIp(ctx, serverID, ip)
+		server, _, err := req.Execute()
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "Error: %v\n", err)
 			os.Exit(1)
 		}
 
-		prettyPrintResponse(r)
+		printResponse(server)
 	},
 }
