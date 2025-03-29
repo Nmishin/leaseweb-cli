@@ -22,3 +22,28 @@ export LEASEWEB_API_KEY=<>
 ```
 
 ---
+```bash
+$ leaseweb-cli dedicated-server -h
+Manage dedicated servers
+
+Usage:
+  leaseweb-cli dedicated-server [command]
+
+Available Commands:
+  get                  Retrieve details of the server
+  get-contract-renewal Retrieve next contract renewal date in milliseconds since epoch
+  get-creds            Retrieve the server credentials
+  get-hardware         Retrieve hardware details of the server
+  get-ip               Describe the server IP
+  get-ips              List the server IPs
+  list                 Retrieve the list of servers
+  power-off            Power off the server
+  power-on             Power on the server
+  reboot               Power cycle the server
+
+Flags:
+  -h, --help   help for dedicated-server
+
+Global Flags:
+      --api-key string   Leaseweb API key (optional, overrides LEASEWEB_API_KEY)
+```
