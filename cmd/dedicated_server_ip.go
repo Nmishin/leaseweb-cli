@@ -12,6 +12,10 @@ import (
 func init() {
 	dedicatedServerCmd.AddCommand(dedicatedServerIpGetCmd)
 	dedicatedServerCmd.AddCommand(dedicatedServerIpListCmd)
+	dedicatedServerIpListCmdFlags()
+}
+
+func dedicatedServerIpListCmdFlags() {
 	dedicatedServerIpListCmd.Flags().StringVar(&networkType, "network-type", "", "Filter by network type")
 	dedicatedServerIpListCmd.Flags().StringVar(&version, "version", "", "Filter by IP version")
 	dedicatedServerIpListCmd.Flags().StringVar(&nullRouted, "null-routed", "", "Filter by null-routed status")
@@ -19,15 +23,6 @@ func init() {
 	dedicatedServerIpListCmd.Flags().Int32Var(&limit, "limit", 20, "Limit the number of results")
 	dedicatedServerIpListCmd.Flags().Int32Var(&offset, "offset", 0, "Offset for pagination")
 }
-
-var (
-	networkType string
-	version     string
-	nullRouted  string
-	ips         string
-	limit       int32
-	offset      int32
-)
 
 var dedicatedServerIpListCmd = &cobra.Command{
 	Use:   "get-ips <serverId>",
