@@ -11,6 +11,11 @@ import (
 )
 
 func init() {
+	registerDedicatedServerCommands()
+	registerDedicatedServerListFlags()
+}
+
+func registerDedicatedServerCommands() {
 	dedicatedServerCmd.AddCommand(dedicatedServerlistCmd)
 	dedicatedServerCmd.AddCommand(dedicatedServerGetCmd)
 	dedicatedServerCmd.AddCommand(dedicatedServerHardwareGetCmd)
@@ -19,7 +24,23 @@ func init() {
 	dedicatedServerCmd.AddCommand(dedicatedServerCredsGetCmd)
 	dedicatedServerCmd.AddCommand(dedicatedServerContractRenewalCmd)
 	dedicatedServerCmd.AddCommand(dedicatedServerPowerCycleCmd)
+
 	rootCmd.AddCommand(dedicatedServerCmd)
+}
+
+func registerDedicatedServerListFlags() {
+	dedicatedServerlistCmd.Flags().Int32Var(&limit, "limit", 20, "Maximum number of servers to retrieve")
+	dedicatedServerlistCmd.Flags().BoolVar(&fetchAll, "all", false, "Fetch all servers (ignores --limit)")
+	dedicatedServerlistCmd.Flags().Int32Var(&offset, "offset", 0, "Return results starting from the given offset")
+
+	// Add filters for dedicated server list
+	dedicatedServerlistCmd.Flags().StringVar(&reference, "reference", "", "Filter by reference")
+	dedicatedServerlistCmd.Flags().StringVar(&ip, "ip", "", "Filter by IP address")
+	dedicatedServerlistCmd.Flags().StringVar(&macAddress, "mac", "", "Filter by MAC address")
+	dedicatedServerlistCmd.Flags().StringVar(&site, "site", "", "Filter by site")
+	dedicatedServerlistCmd.Flags().StringVar(&privateRackId, "private-rack-id", "", "Filter by rack ID")
+	dedicatedServerlistCmd.Flags().StringVar(&privateNetworkCapable, "private-network-capable", "", "Filter for private network capable servers")
+	dedicatedServerlistCmd.Flags().StringVar(&privateNetworkEnabled, "private-network-enabled", "", "Filter for private network enabled servers")
 }
 
 var dedicatedServerCmd = &cobra.Command{
@@ -32,18 +53,77 @@ var dedicatedServerlistCmd = &cobra.Command{
 	Short: "Retrieve the list of servers",
 	Run: func(cmd *cobra.Command, args []string) {
 		ctx := context.Background()
-		server, _, err := leasewebClient.DedicatedserverAPI.GetServerList(ctx).Execute()
-		if err != nil {
-			fmt.Fprintf(os.Stderr, "Error when calling `DedicatedserverAPI.GetServerList``: %v\n", err)
+		allServers := []dedicatedserver.Server{}
+
+		currentOffset := int32(0)
+		apiMaxLimit := int32(50)
+
+		requestedLimit := limit
+		if fetchAll {
+			requestedLimit = 0
 		}
 
-		printResponse(server)
+		for {
+			batchLimit := apiMaxLimit
+			if !fetchAll {
+				if remaining := requestedLimit - int32(len(allServers)); remaining < apiMaxLimit && remaining > 0 {
+					batchLimit = remaining
+				}
+			}
+
+			req := leasewebClient.DedicatedserverAPI.GetServerList(ctx).
+				Limit(batchLimit).
+				Offset(currentOffset)
+
+			if reference != "" {
+				req = req.Reference(reference)
+			}
+			if ip != "" {
+				req = req.Ip(ip)
+			}
+			if macAddress != "" {
+				req = req.MacAddress(macAddress)
+			}
+			if site != "" {
+				req = req.Site(site)
+			}
+			if privateRackId != "" {
+				req = req.PrivateRackId(privateRackId)
+			}
+			if privateNetworkCapable != "" {
+				req = req.PrivateNetworkCapable(privateNetworkCapable)
+			}
+			if privateNetworkEnabled != "" {
+				req = req.PrivateNetworkEnabled(privateNetworkEnabled)
+			}
+
+			serverResponse, _, err := req.Execute()
+			if err != nil {
+				fmt.Fprintf(os.Stderr, "Error fetching servers: %v\n", err)
+				return
+			}
+
+			allServers = append(allServers, serverResponse.Servers...)
+
+			if len(serverResponse.Servers) < int(batchLimit) {
+				break
+			}
+
+			if !fetchAll && int32(len(allServers)) >= requestedLimit {
+				break // Reached the requested limit
+			}
+
+			currentOffset += batchLimit
+		}
+
+		printResponse(allServers)
 	},
 }
 
 var dedicatedServerGetCmd = &cobra.Command{
 	Use:   "get",
-	Short: "Retrieve details of the server",
+	Short: "Retrieve details of the server by ID",
+        Example: "leaseweb-cli dedicated-server get 12345",
 	Args:  cobra.ExactArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
 		ctx := context.Background()
@@ -59,13 +139,14 @@ var dedicatedServerGetCmd = &cobra.Command{
 
 var dedicatedServerHardwareGetCmd = &cobra.Command{
 	Use:   "get-hardware",
-	Short: "Retrieve hardware details of the server",
+	Short: "Retrieve hardware details of the server by ID",
+        Example: "leaseweb-cli dedicated-server get-hardware 12345",
 	Args:  cobra.ExactArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
 		ctx := context.Background()
 		_, r, err := leasewebClient.DedicatedserverAPI.GetHardware(ctx, args[0]).Execute()
 		if err != nil {
-			fmt.Fprintf(os.Stderr, "Error calling `DedicatedserverAPI.GetServerHardware`: %v\n", err)
+			fmt.Fprintf(os.Stderr, "Error calling `DedicatedserverAPI.GetHardware`: %v\n", err)
 		}
 
 		prettyPrintResponse(r)
@@ -74,7 +155,7 @@ var dedicatedServerHardwareGetCmd = &cobra.Command{
 
 var dedicatedServerContractRenewalCmd = &cobra.Command{
 	Use:   "get-contract-renewal",
-	Short: "Retrieve next contract renewal date in milliseconds since epoch",
+	Short: "Retrieve next contract renewal date in milliseconds since epoch by server ID",
 	Args:  cobra.ExactArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
 		ctx := context.Background()
@@ -115,10 +196,10 @@ var dedicatedServerCredsGetCmd = &cobra.Command{
 - type: The credential type (e.g., "OPERATING_SYSTEM", "REMOTE_MANAGEMENT").
 - username: The username associated with the credential.`,
 	Example: `  # Get credentials for a OS
-  leaseweb get-creds 12345 OPERATING_SYSTEM root
+  leaseweb-cli get-creds 12345 OPERATING_SYSTEM root
 
   # Get credentials for a remote management
-  leaseweb get-creds 12345 REMOTE_MANAGEMENT admin`,
+  leaseweb-cli get-creds 12345 REMOTE_MANAGEMENT admin`,
 	Args: cobra.ExactArgs(3),
 	Run: func(cmd *cobra.Command, args []string) {
 		serverID := args[0]
