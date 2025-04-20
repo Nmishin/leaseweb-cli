@@ -1,12 +1,9 @@
 package cmd
 
 var (
-	// Pagination flags (used by multiple commands)
-	limit    int32
-	offset   int32
-        fetchAll bool
-
 	// Filters for dedicated server listing
+	serverLimit           int32
+	serverOffset          int32
 	reference             string
 	ip                    string
 	macAddress            string
@@ -16,6 +13,8 @@ var (
 	privateNetworkEnabled string
 
 	// Filters for dedicated server IP listing
+	ipLimit     int32
+	ipOffset    int32
 	networkType string
 	version     string
 	nullRouted  string

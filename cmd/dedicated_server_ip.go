@@ -20,8 +20,8 @@ func dedicatedServerIpListCmdFlags() {
 	dedicatedServerIpListCmd.Flags().StringVar(&version, "version", "", "Filter by IP version")
 	dedicatedServerIpListCmd.Flags().StringVar(&nullRouted, "null-routed", "", "Filter by null-routed status")
 	dedicatedServerIpListCmd.Flags().StringVar(&ips, "ips", "", "Filter by specific IPs")
-	dedicatedServerIpListCmd.Flags().Int32Var(&limit, "limit", 20, "Limit the number of results")
-	dedicatedServerIpListCmd.Flags().Int32Var(&offset, "offset", 0, "Offset for pagination")
+	dedicatedServerIpListCmd.Flags().Int32Var(&ipLimit, "limit", 0, "Limit the number of results")
+	dedicatedServerIpListCmd.Flags().Int32Var(&ipOffset, "offset", 0, "Offset for pagination")
 }
 
 var dedicatedServerIpListCmd = &cobra.Command{
@@ -33,6 +33,7 @@ var dedicatedServerIpListCmd = &cobra.Command{
 		ctx := context.Background()
 
 		req := leasewebClient.DedicatedserverAPI.GetIpList(ctx, serverID)
+		req = req.Limit(ipLimit)
 		if networkType != "" {
 			req = req.NetworkType(dedicatedserver.NetworkType(networkType))
 		}
@@ -45,11 +46,8 @@ var dedicatedServerIpListCmd = &cobra.Command{
 		if ips != "" {
 			req = req.Ips(ips)
 		}
-		if limit > 0 {
-			req = req.Limit(limit)
-		}
-		if offset > 0 {
-			req = req.Offset(offset)
+		if ipOffset > 0 {
+			req = req.Offset(ipOffset)
 		}
 
 		server, _, err := req.Execute()

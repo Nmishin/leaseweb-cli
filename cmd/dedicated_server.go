@@ -29,9 +29,8 @@ func registerDedicatedServerCommands() {
 }
 
 func registerDedicatedServerListFlags() {
-	dedicatedServerlistCmd.Flags().Int32Var(&limit, "limit", 20, "Maximum number of servers to retrieve")
-	dedicatedServerlistCmd.Flags().BoolVar(&fetchAll, "all", false, "Fetch all servers (ignores --limit)")
-	dedicatedServerlistCmd.Flags().Int32Var(&offset, "offset", 0, "Return results starting from the given offset")
+	dedicatedServerlistCmd.Flags().Int32Var(&serverLimit, "limit", 0, "Maximum number of servers to retrieve (default unlimited)")
+	dedicatedServerlistCmd.Flags().Int32Var(&serverOffset, "offset", 0, "Return results starting from the given offset")
 
 	// Add filters for dedicated server list
 	dedicatedServerlistCmd.Flags().StringVar(&reference, "reference", "", "Filter by reference")
@@ -55,18 +54,15 @@ var dedicatedServerlistCmd = &cobra.Command{
 		ctx := context.Background()
 		allServers := []dedicatedserver.Server{}
 
-		currentOffset := int32(0)
+		currentOffset := serverOffset
 		apiMaxLimit := int32(50)
 
-		requestedLimit := limit
-		if fetchAll {
-			requestedLimit = 0
-		}
+		fetchAll := serverLimit == 0
 
 		for {
 			batchLimit := apiMaxLimit
 			if !fetchAll {
-				if remaining := requestedLimit - int32(len(allServers)); remaining < apiMaxLimit && remaining > 0 {
+				if remaining := serverLimit - int32(len(allServers)); remaining < apiMaxLimit && remaining > 0 {
 					batchLimit = remaining
 				}
 			}
@@ -109,8 +105,8 @@ var dedicatedServerlistCmd = &cobra.Command{
 				break
 			}
 
-			if !fetchAll && int32(len(allServers)) >= requestedLimit {
-				break // Reached the requested limit
+			if !fetchAll && int32(len(allServers)) >= serverLimit {
+				break
 			}
 
 			currentOffset += batchLimit
@@ -121,10 +117,10 @@ var dedicatedServerlistCmd = &cobra.Command{
 }
 
 var dedicatedServerGetCmd = &cobra.Command{
-	Use:   "get",
-	Short: "Retrieve details of the server by ID",
-        Example: "leaseweb-cli dedicated-server get 12345",
-	Args:  cobra.ExactArgs(1),
+	Use:     "get",
+	Short:   "Retrieve details of the server by ID",
+	Example: "leaseweb-cli dedicated-server get 12345",
+	Args:    cobra.ExactArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
 		ctx := context.Background()
 		server, r, err := leasewebClient.DedicatedserverAPI.GetServer(ctx, args[0]).Execute()
@@ -138,10 +134,10 @@ var dedicatedServerGetCmd = &cobra.Command{
 }
 
 var dedicatedServerHardwareGetCmd = &cobra.Command{
-	Use:   "get-hardware",
-	Short: "Retrieve hardware details of the server by ID",
-        Example: "leaseweb-cli dedicated-server get-hardware 12345",
-	Args:  cobra.ExactArgs(1),
+	Use:     "get-hardware",
+	Short:   "Retrieve hardware details of the server by ID",
+	Example: "leaseweb-cli dedicated-server get-hardware 12345",
+	Args:    cobra.ExactArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
 		ctx := context.Background()
 		_, r, err := leasewebClient.DedicatedserverAPI.GetHardware(ctx, args[0]).Execute()
