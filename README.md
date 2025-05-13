@@ -1,5 +1,7 @@
 # Leaseweb CLI
 
+[![GitHub release (latest SemVer)](https://img.shields.io/github/v/release/Nmishin/leaseweb-cli)](https://github.com/Nmishin/leaseweb-cli/releases/latest)
+
 ![GitHub all releases](https://img.shields.io/github/downloads/Nmishin/leaseweb-cli/total?label=GitHub%20Total%20Downloads)
 
 ## About
