@@ -153,20 +153,18 @@ var dedicatedServerContractRenewalCmd = &cobra.Command{
 	Use:   "get-contract-renewal",
 	Short: "Retrieve next contract renewal date in milliseconds since epoch by server ID",
 	Args:  cobra.ExactArgs(1),
-	Run: func(cmd *cobra.Command, args []string) {
+	RunE: func(cmd *cobra.Command, args []string) error {
 		ctx := context.Background()
 		server, _, err := leasewebClient.DedicatedserverAPI.GetServer(ctx, args[0]).Execute()
 		if err != nil {
-			fmt.Fprintf(os.Stderr, "Error calling `DedicatedserverAPI.GetServer`: %v\n", err)
+			return fmt.Errorf("calling `DedicatedserverAPI.GetServer`: %v", err)
 		}
 
 		if server.Contract == nil || server.Contract.StartsAt == nil {
-			fmt.Fprintln(os.Stderr, "Error: Contract start date is missing in API response")
-			return
+			return fmt.Errorf("contract start date is missing in API response")
 		}
 		if server.Contract.ContractTerm == nil {
-			fmt.Fprintln(os.Stderr, "Error: Contract term is missing in API response")
-			return
+			return fmt.Errorf("contract term is missing in API response")
 		}
 
 		startDate := *server.Contract.StartsAt
@@ -180,6 +178,7 @@ var dedicatedServerContractRenewalCmd = &cobra.Command{
 		}
 
 		fmt.Println(renewalDate.UnixMilli())
+		return nil
 	},
 }
 
