@@ -10,9 +10,11 @@ import (
 var apiKey string
 
 var rootCmd = &cobra.Command{
-	Use:   "leaseweb-cli",
-	Short: "A CLI tool to interact with Leaseweb API",
-	Long:  "leaseweb-cli allows you to manage Leaseweb servers via the API.",
+	Use:           "leaseweb-cli",
+	SilenceUsage:  true,
+	SilenceErrors: true,
+	Short:         "A CLI tool to interact with Leaseweb API",
+	Long:          "leaseweb-cli allows you to manage Leaseweb servers via the API.",
 	PersistentPreRun: func(cmd *cobra.Command, args []string) {
 		if apiKey == "" {
 			apiKey = os.Getenv("LEASEWEB_API_KEY")
