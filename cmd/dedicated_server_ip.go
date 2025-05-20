@@ -3,7 +3,6 @@ package cmd
 import (
 	"context"
 	"fmt"
-	"os"
 
 	dedicatedserver "github.com/leaseweb/leaseweb-go-sdk/dedicatedserver/v2"
 	"github.com/spf13/cobra"
@@ -28,7 +27,7 @@ var dedicatedServerIpListCmd = &cobra.Command{
 	Use:   "get-ips <serverId>",
 	Short: "List the server IPs",
 	Args:  cobra.ExactArgs(1),
-	Run: func(cmd *cobra.Command, args []string) {
+	RunE: func(cmd *cobra.Command, args []string) error {
 		serverID := args[0]
 		ctx := context.Background()
 
@@ -52,11 +51,11 @@ var dedicatedServerIpListCmd = &cobra.Command{
 
 		server, _, err := req.Execute()
 		if err != nil {
-			fmt.Fprintf(os.Stderr, "Error: %v\n", err)
-			os.Exit(1)
+			return fmt.Errorf("list the server IPs: %w", err)
 		}
 
 		printResponse(server)
+		return nil
 	},
 }
 
@@ -65,7 +64,7 @@ var dedicatedServerIpGetCmd = &cobra.Command{
 	Short: "Describe the server IP",
 	Long:  "Describe the server IP by server ID and IP address",
 	Args:  cobra.ExactArgs(2),
-	Run: func(cmd *cobra.Command, args []string) {
+	RunE: func(cmd *cobra.Command, args []string) error {
 		serverID := args[0]
 		ip := args[1]
 		ctx := context.Background()
@@ -73,10 +72,10 @@ var dedicatedServerIpGetCmd = &cobra.Command{
 		req := leasewebClient.DedicatedserverAPI.GetIp(ctx, serverID, ip)
 		server, _, err := req.Execute()
 		if err != nil {
-			fmt.Fprintf(os.Stderr, "Error: %v\n", err)
-			os.Exit(1)
+			return fmt.Errorf("describe the server IP: %w", err)
 		}
 
 		printResponse(server)
+		return nil
 	},
 }
