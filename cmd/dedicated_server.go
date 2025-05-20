@@ -3,7 +3,6 @@ package cmd
 import (
 	"context"
 	"fmt"
-	"os"
 	"time"
 
 	dedicatedserver "github.com/leaseweb/leaseweb-go-sdk/dedicatedserver/v2"
@@ -50,7 +49,7 @@ var dedicatedServerCmd = &cobra.Command{
 var dedicatedServerlistCmd = &cobra.Command{
 	Use:   "list",
 	Short: "Retrieve the list of servers",
-	Run: func(cmd *cobra.Command, args []string) {
+	RunE: func(cmd *cobra.Command, args []string) error {
 		ctx := context.Background()
 		allServers := []dedicatedserver.Server{}
 
@@ -95,8 +94,7 @@ var dedicatedServerlistCmd = &cobra.Command{
 
 			serverResponse, _, err := req.Execute()
 			if err != nil {
-				fmt.Fprintf(os.Stderr, "Error fetching servers: %v\n", err)
-				return
+				return fmt.Errorf("retrieving the list of servers: %w", err)
 			}
 
 			allServers = append(allServers, serverResponse.Servers...)
@@ -113,6 +111,7 @@ var dedicatedServerlistCmd = &cobra.Command{
 		}
 
 		printResponse(allServers)
+		return nil
 	},
 }
 
@@ -121,15 +120,15 @@ var dedicatedServerGetCmd = &cobra.Command{
 	Short:   "Retrieve details of the server by ID",
 	Example: "leaseweb-cli dedicated-server get 12345",
 	Args:    cobra.ExactArgs(1),
-	Run: func(cmd *cobra.Command, args []string) {
+	RunE: func(cmd *cobra.Command, args []string) error {
 		ctx := context.Background()
-		server, r, err := leasewebClient.DedicatedserverAPI.GetServer(ctx, args[0]).Execute()
+		server, _, err := leasewebClient.DedicatedserverAPI.GetServer(ctx, args[0]).Execute()
 		if err != nil {
-			fmt.Fprintf(os.Stderr, "Error when calling `DedicatedserverAPI.GetServer``: %v\n", err)
-			fmt.Fprintf(os.Stderr, "Full HTTP response: %v\n", r)
+			return fmt.Errorf("retrieving details of the server: %w", err)
 		}
 
 		printResponse(server)
+		return nil
 	},
 }
 
@@ -138,14 +137,15 @@ var dedicatedServerHardwareGetCmd = &cobra.Command{
 	Short:   "Retrieve hardware details of the server by ID",
 	Example: "leaseweb-cli dedicated-server get-hardware 12345",
 	Args:    cobra.ExactArgs(1),
-	Run: func(cmd *cobra.Command, args []string) {
+	RunE: func(cmd *cobra.Command, args []string) error {
 		ctx := context.Background()
 		_, r, err := leasewebClient.DedicatedserverAPI.GetHardware(ctx, args[0]).Execute()
 		if err != nil {
-			fmt.Fprintf(os.Stderr, "Error calling `DedicatedserverAPI.GetHardware`: %v\n", err)
+			return fmt.Errorf("retrieving hardware details of the server: %w", err)
 		}
 
 		prettyPrintResponse(r)
+		return nil
 	},
 }
 
@@ -157,7 +157,7 @@ var dedicatedServerContractRenewalCmd = &cobra.Command{
 		ctx := context.Background()
 		server, _, err := leasewebClient.DedicatedserverAPI.GetServer(ctx, args[0]).Execute()
 		if err != nil {
-			return fmt.Errorf("calling `DedicatedserverAPI.GetServer`: %v", err)
+			return fmt.Errorf("retrieving next contract renewal date: %w", err)
 		}
 
 		if server.Contract == nil || server.Contract.StartsAt == nil {
@@ -196,7 +196,7 @@ var dedicatedServerCredsGetCmd = &cobra.Command{
   # Get credentials for a remote management
   leaseweb-cli get-creds 12345 REMOTE_MANAGEMENT admin`,
 	Args: cobra.ExactArgs(3),
-	Run: func(cmd *cobra.Command, args []string) {
+	RunE: func(cmd *cobra.Command, args []string) error {
 		serverID := args[0]
 		credType := dedicatedserver.CredentialType(args[1])
 		username := args[2]
@@ -207,11 +207,11 @@ var dedicatedServerCredsGetCmd = &cobra.Command{
 			Execute()
 
 		if err != nil {
-			fmt.Fprintf(os.Stderr, "Error calling `DedicatedserverAPI.GetServerCredential`: %v\n", err)
-			os.Exit(1)
+			return fmt.Errorf("retrieving the server credentials: %w", err)
 		}
 
 		prettyPrintResponse(r)
+		return nil
 	},
 }
 
@@ -219,13 +219,13 @@ var dedicatedServerPowerOnCmd = &cobra.Command{
 	Use:   "power-on",
 	Short: "Power on the server",
 	Args:  cobra.ExactArgs(1),
-	Run: func(cmd *cobra.Command, args []string) {
+	RunE: func(cmd *cobra.Command, args []string) error {
 		ctx := context.Background()
 		_, err := leasewebClient.DedicatedserverAPI.PowerOn(ctx, args[0]).Execute()
 		if err != nil {
-			fmt.Println(err)
-			return
+			return fmt.Errorf("power on the server:  %w", err)
 		}
+		return nil
 	},
 }
 
@@ -233,13 +233,13 @@ var dedicatedServerPowerOffCmd = &cobra.Command{
 	Use:   "power-off",
 	Short: "Power off the server",
 	Args:  cobra.ExactArgs(1),
-	Run: func(cmd *cobra.Command, args []string) {
+	RunE: func(cmd *cobra.Command, args []string) error {
 		ctx := context.Background()
 		_, err := leasewebClient.DedicatedserverAPI.PowerOff(ctx, args[0]).Execute()
 		if err != nil {
-			fmt.Println(err)
-			return
+			return fmt.Errorf("power off the server:  %w", err)
 		}
+		return nil
 	},
 }
 
@@ -247,12 +247,12 @@ var dedicatedServerPowerCycleCmd = &cobra.Command{
 	Use:   "reboot",
 	Short: "Power cycle the server",
 	Args:  cobra.ExactArgs(1),
-	Run: func(cmd *cobra.Command, args []string) {
+	RunE: func(cmd *cobra.Command, args []string) error {
 		ctx := context.Background()
 		_, err := leasewebClient.DedicatedserverAPI.PowerCycle(ctx, args[0]).Execute()
 		if err != nil {
-			fmt.Println(err)
-			return
+			return fmt.Errorf("power cycle the server:  %w", err)
 		}
+		return nil
 	},
 }
