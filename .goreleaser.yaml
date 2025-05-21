@@ -8,8 +8,8 @@ builds:
       - darwin
 
 archives:
-  - format: tar.gz
-    # this name template makes the OS and Arch compatible with the results of `uname`.
+  - formats:
+      - tar.gz
     name_template: >-
       {{ .ProjectName }}-
       {{- .Version }}-
