@@ -21,3 +21,24 @@ archives:
 
 changelog:
   sort: asc
+
+brews:
+  - name: leaseweb-cli
+    commit_author:
+      name: goreleaserbot
+      email: goreleaserbot@nmishin.com
+    commit_msg_template: "Brew formula update for {{ .ProjectName }} version {{ .Tag }}"
+    directory: Formula
+    homepage: "https://github.com/Nmishin/leaseweb-cli"
+    description: "The command line interface for Leaseweb API"
+    license: "Apache-2.0"
+    skip_upload: auto
+    extra_install: |
+      chmod 0555, bin/"leaseweb-cli"
+    repository:
+      owner: Nmishin
+      name: homebrew-tap
+      # see https://goreleaser.com/errors/resource-not-accessible-by-integration
+      token: "{{ .Env.TAP_GITHUB_TOKEN }}"
+      pull_request:
+        enabled: true
