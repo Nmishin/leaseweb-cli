@@ -16,6 +16,14 @@ var rootCmd = &cobra.Command{
 	Short:         "A CLI tool to interact with Leaseweb API",
 	Long:          "leaseweb-cli allows you to manage Leaseweb servers via the API.",
 	PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
+		skipAPIKeyCommands := []string{"version"}
+
+		for _, skipCmd := range skipAPIKeyCommands {
+			if cmd.Name() == skipCmd {
+				return nil
+			}
+		}
+
 		if apiKey == "" {
 			apiKey = os.Getenv("LEASEWEB_API_KEY")
 		}

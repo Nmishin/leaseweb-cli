@@ -1,22 +1,37 @@
 # Leaseweb CLI
 
 [![GitHub release (latest SemVer)](https://img.shields.io/github/v/release/Nmishin/leaseweb-cli)](https://github.com/Nmishin/leaseweb-cli/releases/latest)
-
 ![GitHub all releases](https://img.shields.io/github/downloads/Nmishin/leaseweb-cli/total?label=GitHub%20Total%20Downloads)
 
-### About
+## About
 
-This tool interacts with Leaseweb's API, allowing users to retrieve details about dedicated servers. It includes commands like `get` to fetch server details and `get-hardware` to retrieve hardware information.
+`leaseweb-cli` is unofficial Leaseweb command line tool.
 
-### Installation
-Download the binary from the [Releases page](https://github.com/Nmishin/leaseweb-cli/releases).
+## Installation
 
-### Build
+### macOS
+
+`leaseweb-cli` is available via [Homebrew](https://brew.sh/), and as a downloadable binary from [releases page](https://github.com/Nmishin/leaseweb-cli/releases/latest).
+
+#### Homebrew
+
 ```bash
-git clone git@github.com:Nmishin/leaseweb-cli.git
-cd leaseweb-cli
-go build -o leaseweb
+brew tap nmishin/tap
+brew install leaseweb-cli
 ```
+
+### Linux
+
+`leaseweb-cli` is available via [Homebrew](https://brew.sh/), and as a downloadable binary from [releases page](https://github.com/Nmishin/leaseweb-cli/releases/latest).
+
+#### Homebrew
+
+```bash
+brew tap nmishin/tap
+brew install leaseweb-cli
+```
+
+## Usage
 
 ### Generate your API Key
 You can generate your API key at the [Customer Portal](https://secure.leaseweb.com/)
@@ -27,8 +42,7 @@ For authentication need to export API Key from previous step, or set it as `--ap
 export LEASEWEB_API_KEY=<>
 ```
 
-### Usage
-
+### Supported commands for dedicated-server
 ```bash
 $ leaseweb-cli dedicated-server -h
 
