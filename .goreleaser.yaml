@@ -7,7 +7,7 @@ builds:
       - linux
       - darwin
     ldflags:
-      - -s -w -X main.cliVersion={{.Tag}}
+      - -s -w -X github.com/Nmishin/leaseweb-cli/cmd.cliVersion={{.Tag}}
 
 archives:
   - formats:
