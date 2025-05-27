@@ -16,6 +16,7 @@ func init() {
 
 func registerDedicatedServerCommands() {
 	dedicatedServerCmd.AddCommand(dedicatedServerlistCmd)
+	dedicatedServerCmd.AddCommand(dedicatedServerGetOS)
 	dedicatedServerCmd.AddCommand(dedicatedServerGetCmd)
 	dedicatedServerCmd.AddCommand(dedicatedServerHardwareGetCmd)
 	dedicatedServerCmd.AddCommand(dedicatedServerPowerOnCmd)
@@ -30,6 +31,8 @@ func registerDedicatedServerCommands() {
 func registerDedicatedServerListFlags() {
 	dedicatedServerlistCmd.Flags().Int32Var(&serverLimit, "limit", 0, "Maximum number of servers to retrieve (default unlimited)")
 	dedicatedServerlistCmd.Flags().Int32Var(&serverOffset, "offset", 0, "Return results starting from the given offset")
+	dedicatedServerGetOS.Flags().Int32Var(&osLimit, "limit", 0, "Maximum number of servers to retrieve (default unlimited)")
+	dedicatedServerGetOS.Flags().Int32Var(&osOffset, "offset", 0, "Return results starting from the given offset")
 
 	// Add filters for dedicated server list
 	dedicatedServerlistCmd.Flags().StringVar(&reference, "reference", "", "Filter by reference")
@@ -111,6 +114,53 @@ var dedicatedServerlistCmd = &cobra.Command{
 		}
 
 		printResponse(allServers)
+		return nil
+	},
+}
+
+var dedicatedServerGetOS = &cobra.Command{
+	Use:   "list-os",
+	Short: "Retrieve the list of available operating systems",
+	RunE: func(cmd *cobra.Command, args []string) error {
+		ctx := context.Background()
+		allOSes := []dedicatedserver.OperatingSystem{}
+
+		currentOffset := osOffset
+		apiMaxLimit := int32(50)
+
+		fetchAll := osLimit == 0
+
+		for {
+			batchLimit := apiMaxLimit
+			if !fetchAll {
+				if remaining := serverLimit - int32(len(allOSes)); remaining < apiMaxLimit && remaining > 0 {
+					batchLimit = remaining
+				}
+			}
+
+			req := leasewebClient.DedicatedserverAPI.GetOperatingSystemList(ctx).
+				Limit(batchLimit).
+				Offset(currentOffset)
+
+			osResponse, _, err := req.Execute()
+			if err != nil {
+				return fmt.Errorf("retrieving the list of OSes: %w", err)
+			}
+
+			allOSes = append(allOSes, osResponse.OperatingSystems...)
+
+			if len(osResponse.OperatingSystems) < int(batchLimit) {
+				break
+			}
+
+			if !fetchAll && int32(len(allOSes)) >= serverLimit {
+				break
+			}
+
+			currentOffset += batchLimit
+		}
+
+		printResponse(allOSes)
 		return nil
 	},
 }

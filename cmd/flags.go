@@ -11,6 +11,8 @@ var (
 	privateRackId         string
 	privateNetworkCapable string
 	privateNetworkEnabled string
+	osOffset              int32
+	osLimit               int32
 
 	// Filters for dedicated server IP listing
 	ipLimit     int32
