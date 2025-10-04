@@ -2,7 +2,10 @@ package cmd
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
+	"io"
+	"strings"
 	"time"
 
 	dedicatedserver "github.com/leaseweb/leaseweb-go-sdk/dedicatedserver/v2"
@@ -189,12 +192,33 @@ var dedicatedServerHardwareGetCmd = &cobra.Command{
 	Args:    cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		ctx := context.Background()
-		_, r, err := leasewebClient.DedicatedserverAPI.GetHardware(ctx, args[0]).Execute()
+
+		_, httpResp, err := leasewebClient.DedicatedserverAPI.GetHardware(ctx, args[0]).Execute()
 		if err != nil {
-			return fmt.Errorf("retrieving hardware details of the server: %w", err)
+			return fmt.Errorf("retrieving hardware details: %w", err)
 		}
 
-		prettyPrintResponse(r)
+		body, err := io.ReadAll(httpResp.Body)
+		if err != nil {
+			return fmt.Errorf("reading response body: %w", err)
+		}
+		defer httpResp.Body.Close()
+
+		jsonStr := string(body)
+		jsonStr = strings.ReplaceAll(jsonStr, `"smartctl":true`, `"smartctl":"enabled"`)
+		jsonStr = strings.ReplaceAll(jsonStr, `"smartctl":false`, `"smartctl":"disabled"`)
+
+		var data interface{}
+		if err := json.Unmarshal([]byte(jsonStr), &data); err != nil {
+			return fmt.Errorf("parsing JSON: %w", err)
+		}
+
+		pretty, err := json.MarshalIndent(data, "", "    ")
+		if err != nil {
+			return fmt.Errorf("formatting JSON: %w", err)
+		}
+
+		fmt.Println(string(pretty))
 		return nil
 	},
 }
