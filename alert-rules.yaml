@@ -1,0 +1,7 @@
+rules:
+  - term_months: 6
+    alert_before: "2160h"   # ~90 дней
+  - term_months: 12
+    alert_before: "2160h"
+  - term_months: 1
+    alert_before: "72h"     # 3 дня
