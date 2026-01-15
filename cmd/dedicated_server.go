@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"os"
 	"strings"
 	"time"
 
@@ -26,7 +27,9 @@ func registerDedicatedServerCommands() {
 	dedicatedServerCmd.AddCommand(dedicatedServerPowerOffCmd)
 	dedicatedServerCmd.AddCommand(dedicatedServerCredsGetCmd)
 	dedicatedServerCmd.AddCommand(dedicatedServerContractRenewalCmd)
+	dedicatedServerCmd.AddCommand(dedicatedServerCheckContractCmd)
 	dedicatedServerCmd.AddCommand(dedicatedServerPowerCycleCmd)
+	dedicatedServerCmd.AddCommand(dedicatedServerCheckContractsCmd)
 
 	rootCmd.AddCommand(dedicatedServerCmd)
 }
@@ -57,68 +60,95 @@ var dedicatedServerlistCmd = &cobra.Command{
 	Short: "Retrieve the list of servers",
 	RunE: func(cmd *cobra.Command, args []string) error {
 		ctx := context.Background()
-		allServers := []dedicatedserver.Server{}
 
-		currentOffset := serverOffset
-		apiMaxLimit := int32(50)
-
-		fetchAll := serverLimit == 0
-
-		for {
-			batchLimit := apiMaxLimit
-			if !fetchAll {
-				if remaining := serverLimit - int32(len(allServers)); remaining < apiMaxLimit && remaining > 0 {
-					batchLimit = remaining
-				}
-			}
-
-			req := leasewebClient.DedicatedserverAPI.GetServerList(ctx).
-				Limit(batchLimit).
-				Offset(currentOffset)
-
-			if reference != "" {
-				req = req.Reference(reference)
-			}
-			if ip != "" {
-				req = req.Ip(ip)
-			}
-			if macAddress != "" {
-				req = req.MacAddress(macAddress)
-			}
-			if site != "" {
-				req = req.Site(site)
-			}
-			if privateRackId != "" {
-				req = req.PrivateRackId(privateRackId)
-			}
-			if privateNetworkCapable != "" {
-				req = req.PrivateNetworkCapable(privateNetworkCapable)
-			}
-			if privateNetworkEnabled != "" {
-				req = req.PrivateNetworkEnabled(privateNetworkEnabled)
-			}
-
-			serverResponse, _, err := req.Execute()
-			if err != nil {
-				return fmt.Errorf("retrieving the list of servers: %w", err)
-			}
-
-			allServers = append(allServers, serverResponse.Servers...)
-
-			if len(serverResponse.Servers) < int(batchLimit) {
-				break
-			}
-
-			if !fetchAll && int32(len(allServers)) >= serverLimit {
-				break
-			}
-
-			currentOffset += batchLimit
+		allServers, err := fetchAllDedicatedServers(ctx)
+		if err != nil {
+			return err
 		}
 
 		printResponse(allServers)
 		return nil
 	},
+}
+
+// the same global flags can be used here:
+// var serverOffset int32
+// var serverLimit int32
+// var reference, ip, macAddress, site, privateRackId, privateNetworkCapable, privateNetworkEnabled string
+
+func fetchAllDedicatedServers(ctx context.Context) ([]dedicatedserver.Server, error) {
+	allServers := []dedicatedserver.Server{}
+
+	currentOffset := serverOffset
+	apiMaxLimit := int32(50)
+
+	fetchAll := serverLimit == 0
+
+	for {
+		batchLimit := apiMaxLimit
+		if !fetchAll {
+			if remaining := serverLimit - int32(len(allServers)); remaining < apiMaxLimit && remaining > 0 {
+				batchLimit = remaining
+			}
+		}
+
+		req := leasewebClient.DedicatedserverAPI.GetServerList(ctx).
+			Limit(batchLimit).
+			Offset(currentOffset)
+
+		if reference != "" {
+			req = req.Reference(reference)
+		}
+		if ip != "" {
+			req = req.Ip(ip)
+		}
+		if macAddress != "" {
+			req = req.MacAddress(macAddress)
+		}
+		if site != "" {
+			req = req.Site(site)
+		}
+		if privateRackId != "" {
+			req = req.PrivateRackId(privateRackId)
+		}
+		if privateNetworkCapable != "" {
+			req = req.PrivateNetworkCapable(privateNetworkCapable)
+		}
+		if privateNetworkEnabled != "" {
+			req = req.PrivateNetworkEnabled(privateNetworkEnabled)
+		}
+
+		serverResponse, _, err := req.Execute()
+		if err != nil {
+			return nil, fmt.Errorf("retrieving the list of servers: %w", err)
+		}
+
+		allServers = append(allServers, serverResponse.Servers...)
+
+		if len(serverResponse.Servers) < int(batchLimit) {
+			break
+		}
+
+		if !fetchAll && int32(len(allServers)) >= serverLimit {
+			break
+		}
+
+		currentOffset += batchLimit
+	}
+
+	return allServers, nil
+}
+
+func getServerName(server *dedicatedserver.Server) string {
+	if server == nil || server.Contract == nil {
+		return ""
+	}
+
+	if v := server.Contract.Reference.Get(); v != nil {
+		return *v
+	}
+
+	return ""
 }
 
 var dedicatedServerGetOS = &cobra.Command{
@@ -252,6 +282,156 @@ var dedicatedServerContractRenewalCmd = &cobra.Command{
 		}
 
 		fmt.Println(renewalDate.UnixMilli())
+		return nil
+	},
+}
+
+var dedicatedServerCheckContractCmd = &cobra.Command{
+	Use:   "check-contract <serverId>",
+	Short: "Check contract and send ALARM according to rules",
+	Args:  cobra.ExactArgs(1),
+	RunE: func(cmd *cobra.Command, args []string) error {
+		ctx := context.Background()
+
+		serverID := args[0]
+
+		cfg, err := LoadAlertConfig(alertConfigPath)
+		if err != nil {
+			return fmt.Errorf("load alert config: %w", err)
+		}
+
+		var notifier Notifier
+		switch notifierKind {
+		case "mattermost":
+			webhook := os.Getenv("MATTERMOST_WEBHOOK_URL")
+			if webhook == "" {
+				return fmt.Errorf("MATTERMOST_WEBHOOK_URL is empty")
+			}
+			channel := os.Getenv("MATTERMOST_CHANNEL")
+
+			notifier = MattermostNotifier{
+				WebhookURL: webhook,
+				Channel:    channel,
+			}
+		default:
+			return fmt.Errorf("unknown notifier: %s", notifierKind)
+		}
+
+		server, _, err := leasewebClient.DedicatedserverAPI.
+			GetServer(ctx, serverID).Execute()
+		if err != nil {
+			return fmt.Errorf("retrieving server: %w", err)
+		}
+
+		return dedicatedServerContractAlarm(ctx, server, cfg, notifier)
+	},
+}
+
+func dedicatedServerContractAlarm(
+	ctx context.Context,
+	server *dedicatedserver.Server,
+	cfg *AlertConfig,
+	notifier Notifier,
+) error {
+	if server.Contract == nil || server.Contract.StartsAt == nil || server.Contract.ContractTerm == nil {
+		fmt.Printf(
+			"Contract information is incomplete — cannot evaluate alarm. Details: hasContract=%v, hasStartsAt=%v, hasTerm=%v\n",
+			server.Contract != nil,
+			server.Contract != nil && server.Contract.StartsAt != nil,
+			server.Contract != nil && server.Contract.ContractTerm != nil,
+		)
+		return nil
+	}
+
+	start := *server.Contract.StartsAt
+	term := int(*server.Contract.ContractTerm)
+	now := time.Now()
+
+	period := computeContractPeriod(now, start, term)
+
+	fmt.Println("Contract period ends at:", period.PeriodEnd.Format(time.RFC3339))
+	fmt.Println("Time left:", period.TimeLeft)
+
+	if !shouldAlert(term, period, cfg) {
+		fmt.Println("No alarm according to alert rules.")
+		return nil
+	}
+
+	timeLeftHuman := formatTimeLeft(period)
+
+	serverID := server.GetId()
+	serverName := getServerName(server)
+
+	body := fmt.Sprintf(
+		"Server Name: %s\nServer ID: %s\nContract term: %d months\nEnds at: %s\nTime left: %s",
+		serverName,
+		serverID,
+		term,
+		period.PeriodEnd.Format(time.RFC3339),
+		timeLeftHuman,
+	)
+
+	fmt.Println("ALARM: sending notification...")
+	if err := notifier.Notify(ctx, "⚠️ Dedicated server contract alarm", body); err != nil {
+		return fmt.Errorf("sending notification: %w", err)
+	}
+
+	fmt.Println("Notification sent.")
+	return nil
+}
+
+var dedicatedServerCheckContractsCmd = &cobra.Command{
+	Use:   "check-contracts",
+	Short: "Check contracts for all (or filtered) servers and send alarms",
+	RunE: func(cmd *cobra.Command, args []string) error {
+		ctx := context.Background()
+
+		cfg, err := LoadAlertConfig(alertConfigPath)
+		if err != nil {
+			return fmt.Errorf("load alert config: %w", err)
+		}
+
+		var notifier Notifier
+		switch notifierKind {
+		case "mattermost":
+			webhook := os.Getenv("MATTERMOST_WEBHOOK_URL")
+			if webhook == "" {
+				return fmt.Errorf("MATTERMOST_WEBHOOK_URL is empty")
+			}
+			channel := os.Getenv("MATTERMOST_CHANNEL")
+			notifier = MattermostNotifier{
+				WebhookURL: webhook,
+				Channel:    channel,
+			}
+		default:
+			return fmt.Errorf("unknown notifier: %s", notifierKind)
+		}
+
+		servers, err := fetchAllDedicatedServers(ctx)
+		if err != nil {
+			return err
+		}
+
+		fmt.Printf("Found %d servers, checking contracts...\n", len(servers))
+
+		for i := range servers {
+			listSrv := &servers[i]
+			serverID := listSrv.GetId()
+
+			fmt.Printf("=== %d/%d: %s (%s)\n", i+1, len(servers), serverID, getServerName(listSrv))
+
+			detailed, _, err := leasewebClient.DedicatedserverAPI.
+				GetServer(ctx, serverID).Execute()
+			if err != nil {
+				fmt.Printf("Error retrieving server %s: %v\n", serverID, err)
+				continue
+			}
+
+			if err := dedicatedServerContractAlarm(ctx, detailed, cfg, notifier); err != nil {
+				fmt.Printf("Error processing server %s: %v\n", serverID, err)
+			}
+		}
+
 		return nil
 	},
 }

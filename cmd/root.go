@@ -8,6 +8,8 @@ import (
 )
 
 var apiKey string
+var alertConfigPath string
+var notifierKind string
 
 var rootCmd = &cobra.Command{
 	Use:           "leaseweb-cli",
@@ -51,4 +53,18 @@ func Execute() {
 
 func init() {
 	rootCmd.PersistentFlags().StringVar(&apiKey, "api-key", "", "Leaseweb API key (optional, overrides LEASEWEB_API_KEY)")
+
+	rootCmd.PersistentFlags().StringVar(
+		&alertConfigPath,
+		"alert-config",
+		"alert-rules.yaml",
+		"path to alert rules config",
+	)
+
+	rootCmd.PersistentFlags().StringVar(
+		&notifierKind,
+		"notifier",
+		"mattermost",
+		"notifier kind: mattermost|telegram|email",
+	)
 }
