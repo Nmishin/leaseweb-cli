@@ -3,7 +3,7 @@ module github.com/Nmishin/leaseweb-cli
 go 1.25.1
 
 require (
-	github.com/leaseweb/leaseweb-go-sdk/dedicatedserver/v2 v2.0.7
+	github.com/leaseweb/leaseweb-go-sdk/dedicatedserver/v2 v2.0.8
 	github.com/spf13/cobra v1.10.1
 )
 
