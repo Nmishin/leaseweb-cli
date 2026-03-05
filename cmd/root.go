@@ -3,6 +3,7 @@ package cmd
 import (
 	"fmt"
 	"os"
+	"slices"
 
 	"github.com/spf13/cobra"
 )
@@ -18,10 +19,8 @@ var rootCmd = &cobra.Command{
 	PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
 		skipAPIKeyCommands := []string{"version"}
 
-		for _, skipCmd := range skipAPIKeyCommands {
-			if cmd.Name() == skipCmd {
-				return nil
-			}
+		if slices.Contains(skipAPIKeyCommands, cmd.Name()) {
+			return nil
 		}
 
 		if apiKey == "" {

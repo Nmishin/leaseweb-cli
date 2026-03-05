@@ -22,6 +22,7 @@ func registerDedicatedServerCommands() {
 	dedicatedServerCmd.AddCommand(dedicatedServerGetOS)
 	dedicatedServerCmd.AddCommand(dedicatedServerGetCmd)
 	dedicatedServerCmd.AddCommand(dedicatedServerHardwareGetCmd)
+	dedicatedServerCmd.AddCommand(dedicatedServerGetHealth)
 	dedicatedServerCmd.AddCommand(dedicatedServerPowerOnCmd)
 	dedicatedServerCmd.AddCommand(dedicatedServerPowerOffCmd)
 	dedicatedServerCmd.AddCommand(dedicatedServerCredsGetCmd)
@@ -208,7 +209,7 @@ var dedicatedServerHardwareGetCmd = &cobra.Command{
 		jsonStr = strings.ReplaceAll(jsonStr, `"smartctl":true`, `"smartctl":"enabled"`)
 		jsonStr = strings.ReplaceAll(jsonStr, `"smartctl":false`, `"smartctl":"disabled"`)
 
-		var data interface{}
+		var data any
 		if err := json.Unmarshal([]byte(jsonStr), &data); err != nil {
 			return fmt.Errorf("parsing JSON: %w", err)
 		}
@@ -219,6 +220,23 @@ var dedicatedServerHardwareGetCmd = &cobra.Command{
 		}
 
 		fmt.Println(string(pretty))
+		return nil
+	},
+}
+
+var dedicatedServerGetHealth = &cobra.Command{
+	Use:     "get-health",
+	Short:   "Retrieve health of the server by ID",
+	Example: "leaseweb-cli dedicated-server get-health 12345",
+	Args:    cobra.ExactArgs(1),
+	RunE: func(cmd *cobra.Command, args []string) error {
+		ctx := context.Background()
+		server, _, err := leasewebClient.DedicatedserverAPI.GetHardwareMonitoring(ctx, args[0]).Execute()
+		if err != nil {
+			return fmt.Errorf("retrieving details of the server: %w", err)
+		}
+
+		printResponse(server)
 		return nil
 	},
 }
