@@ -1,6 +1,6 @@
 module github.com/Nmishin/leaseweb-cli
 
-go 1.25.1
+go 1.26.0
 
 require (
 	github.com/leaseweb/leaseweb-go-sdk/dedicatedserver/v2 v2.0.8

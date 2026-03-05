@@ -55,6 +55,7 @@ Available Commands:
   get                  Retrieve details of the server by ID
   get-contract-renewal Retrieve next contract renewal date in milliseconds since epoch by server ID
   get-creds            Retrieve the server credentials
+  get-health           Retrieve health of the server by ID
   get-hardware         Retrieve hardware details of the server by ID
   get-ip               Describe the server IP
   get-ips              List the server IPs

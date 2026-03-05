@@ -9,7 +9,7 @@ import (
 	"os"
 )
 
-func printResponse(resp interface{}) {
+func printResponse(resp any) {
 	jsonData, err := json.MarshalIndent(resp, "", "    ")
 	if err != nil {
 		fmt.Fprintf(os.Stdout, "Error marshalling response: %v\n", err)
