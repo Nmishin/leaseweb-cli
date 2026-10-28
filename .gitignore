@@ -1,0 +1,9 @@
+# Binaries
+leaseweb
+leaseweb-cli
+
+# OS files
+.DS_Store
+
+# JSON dumps / test data
+*.json
