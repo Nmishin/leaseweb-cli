@@ -21,6 +21,10 @@ archives:
       {{- else }}{{ .Arch }}{{ end }}
       {{- if .Arm }}v{{ .Arm }}{{ end }}
 
+checksum:
+  # Stable name so the release workflow can attest it by a fixed path.
+  name_template: 'checksums.txt'
+
 changelog:
   sort: asc
 
