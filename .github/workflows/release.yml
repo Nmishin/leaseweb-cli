@@ -38,7 +38,12 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           TAP_GITHUB_TOKEN: ${{ secrets.TAP_GITHUB_TOKEN }}
+      - name: Locate checksums file
+        id: checksums
+        # goreleaser keeps the default versioned name (<project>_<version>_checksums.txt),
+        # so resolve it at runtime instead of pinning a fixed path.
+        run: echo "file=$(ls dist/*checksums.txt)" >> "$GITHUB_OUTPUT"
       - name: Attest build provenance
         uses: actions/attest-build-provenance@4d101475d8b20a2381f78447822ac1eab6504dd8 # ratchet:actions/attest-build-provenance@v4.2.2
         with:
-          subject-checksums: dist/checksums.txt
+          subject-checksums: ${{ steps.checksums.outputs.file }}
